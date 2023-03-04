@@ -57,6 +57,7 @@
 #endif
 #define MQTT_LOOP_MS 1000     // MQTTClient.loop(); call period (in mSec)
 #define MQTT_RETAINED_0 false // Retained option
+#define MQTT_SEPARATE_TOPICS false // Separate topics for device protocols, ids and commands
 #ifndef RFLink_default_MQTT_LWT              // Let know if Module is Online or Offline via MQTT Last Will message
   #define RFLink_default_MQTT_LWT true
 #endif

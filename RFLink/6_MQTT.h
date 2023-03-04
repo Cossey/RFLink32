@@ -57,6 +57,7 @@ namespace RFLink { namespace Mqtt {
 
         extern bool lwt_enabled;
         extern String topic_lwt;
+        extern bool separate_topics;
 
         #ifndef RFLINK_MQTT_CLIENT_SSL_DISABLED
         extern bool ssl_enabled;

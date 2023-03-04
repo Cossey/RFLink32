@@ -65,6 +65,8 @@ namespace RFLink { namespace Mqtt {
     bool lwt_enabled;
     String topic_lwt;
 
+    bool separate_topics;
+
     bool ssl_enabled;
     bool ssl_insecure;
     String ca_cert;
@@ -90,6 +92,8 @@ const char json_name_topic_out[] = "topic_out";
 const char json_name_lwt_enabled[] = "lwt_enabled";
 const char json_name_topic_lwt[] = "topic_lwt";
 
+const char json_name_separate_topics[] = "separate_topics";
+
 #ifndef RFLINK_MQTT_CLIENT_SSL_DISABLED
 const char json_name_ssl_enabled[] = "ssl_enabled";
 const char json_name_ssl_insecure[] = "ssl_insecure";
@@ -114,6 +118,8 @@ Config::ConfigItem configItems[] =  {
 
   Config::ConfigItem(json_name_lwt_enabled, Config::SectionId::MQTT_id, RFLink_default_MQTT_LWT, paramsUpdatedCallback),
   Config::ConfigItem(json_name_topic_lwt,   Config::SectionId::MQTT_id, MQTT_TOPIC_LWT, paramsUpdatedCallback),
+
+  Config::ConfigItem(json_name_separate_topics, Config::SectionId::MQTT_id, MQTT_SEPARATE_TOPICS, paramsUpdatedCallback),
 
   #ifndef RFLINK_MQTT_CLIENT_SSL_DISABLED
   Config::ConfigItem(json_name_ssl_enabled, Config::SectionId::MQTT_id, RFLink_default_MQTT_SSL_ENABLED, paramsUpdatedCallback),
@@ -195,6 +201,12 @@ void refreshParametersFromConfig(bool triggerChanges) {
     if( params::topic_lwt != item->getCharValue() ) {
       changesDetected = true;
       params::topic_lwt = item->getCharValue();
+    }
+
+    item = Config::findConfigItem(json_name_separate_topics, Config::SectionId::MQTT_id);
+    if( item->getBoolValue() != params::separate_topics) {
+      changesDetected = true;
+      params::separate_topics = item->getBoolValue();
     }
 
     #ifndef RFLINK_MQTT_CLIENT_SSL_DISABLED
@@ -330,7 +342,33 @@ void publishMsg()
 
   if (!MQTTClient.connected())
     reconnect(1);
-  MQTTClient.publish(params::topic_out.c_str(), pbuffer, MQTT_RETAINED);
+  if (params::separate_topics) {
+    char *array[64];
+    String _topic;
+    String _protocol;
+    String _id;
+    String _sw;
+    String _cmd;
+    int i = 0;
+
+    array[i] = strtok(pbuffer, ";=");
+
+    while(array[i] != NULL)
+      array[++i] = strtok(NULL, ";=");
+
+    _protocol = array[2];
+    _id = array[4];
+    _sw = array[6];
+    _cmd = array[8];
+
+    _topic = params::topic_out + "/" + _protocol + "/" + _id + "/" + _sw + "/cmd";
+    sprintf(pbuffer,"%s",_cmd.c_str());
+    Serial.println(_topic.c_str());  
+    Serial.println(pbuffer);
+    MQTTClient.publish(_topic.c_str(), pbuffer, MQTT_RETAINED);
+  } else {
+    MQTTClient.publish(params::topic_out.c_str(), pbuffer, MQTT_RETAINED);
+  }
 }
 
 void checkMQTTloop()
